@@ -1,0 +1,23 @@
+// Update your MainApplication.java or MainApplication.kt to register the package:
+
+// In getPackages() method, add:
+// packages.add(new SmsManagerPackage());
+
+// Example (Java):
+/*
+@Override
+protected List<ReactPackage> getPackages() {
+    List<ReactPackage> packages = new PackageList(this).getPackages();
+    packages.add(new SmsManagerPackage()); // Add this line
+    return packages;
+}
+*/
+
+// Example (Kotlin):
+/*
+override fun getPackages(): List<ReactPackage> {
+    return PackageList(this).packages.apply {
+        add(SmsManagerPackage()) // Add this line
+    }
+}
+*/
