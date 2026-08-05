@@ -6,9 +6,11 @@
 
 import express, { Application } from 'express';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
 import { securityHeaders, rateLimiter, apiKeyAuth } from './middleware/security';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import smsRoutes from './routes/smsRoutes';
+import { swaggerSpec } from './config/swagger';
 import { logger } from './utils/logger';
 
 export const createApp = (): Application => {
@@ -36,8 +38,18 @@ export const createApp = (): Application => {
     next();
   });
 
-  // Health check endpoint
-  app.get('/health', (_req, res) => {
+  /**
+   * @openapi
+   * /health:
+   *   get:
+   *     summary: Backend health check
+   *     tags: [Health]
+   *     security: []
+   *     responses:
+   *       200:
+   *         description: Backend is healthy
+   */
+  const healthCheck = (_req: express.Request, res: express.Response): void => {
     res.status(200).json({
       success: true,
       status: 'healthy',
@@ -45,10 +57,17 @@ export const createApp = (): Application => {
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
     });
-  });
+  };
+  app.get('/health', healthCheck);
+  app.get('/api/health', healthCheck);
+
+  // Swagger API documentation
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
 
   // API routes
   app.use('/messages', smsRoutes);
+  app.use('/api/messages', smsRoutes);
 
   // 404 handler
   app.use(notFoundHandler);
