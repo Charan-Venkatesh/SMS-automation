@@ -1,17 +1,8 @@
 import React, { useRef, useState } from 'react';
-import {
-  NativeModules,
-  PermissionsAndroid,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { NativeModules, PermissionsAndroid, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const { SmsManager } = NativeModules as {
-  SmsManager?: { sendSms(phoneNumber: string, message: string): Promise<string> };
+const { DirectSms } = NativeModules as {
+  DirectSms?: { sendDirectSms(phoneNumber: string, message: string): void };
 };
 
 // Local test queue. Replace with real numbers/messages before building.
@@ -23,10 +14,9 @@ const queue = Array.from({ length: MESSAGE_COUNT }, (_, i) => ({
 
 const SEND_DELAY_MS = 1500;
 
-const App: React.FC = () => {
+export default function App() {
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(0);
-  const [failed, setFailed] = useState(0);
   const [status, setStatus] = useState('Ready');
   const stopRef = useRef(false);
 
@@ -46,7 +36,7 @@ const App: React.FC = () => {
       return;
     }
 
-    if (!SmsManager) {
+    if (!DirectSms) {
       setStatus('SMS module not available on this build.');
       return;
     }
@@ -60,22 +50,14 @@ const App: React.FC = () => {
     stopRef.current = false;
     setIsSending(true);
     setSent(0);
-    setFailed(0);
     setStatus('Sending...');
 
     let sentCount = 0;
-    let failedCount = 0;
-
     for (const item of queue) {
       if (stopRef.current) break;
-      try {
-        await SmsManager.sendSms(item.phoneNumber, item.message);
-        sentCount += 1;
-      } catch {
-        failedCount += 1;
-      }
+      DirectSms.sendDirectSms(item.phoneNumber, item.message);
+      sentCount += 1;
       setSent(sentCount);
-      setFailed(failedCount);
       await new Promise((resolve) => setTimeout(resolve, SEND_DELAY_MS));
     }
 
@@ -84,26 +66,22 @@ const App: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.content}>
-        <Text style={styles.title}>SMS Sender</Text>
-        <Text style={styles.subtitle}>{MESSAGE_COUNT} messages queued</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>SMS Sender</Text>
+      <Text style={styles.subtitle}>{MESSAGE_COUNT} messages queued</Text>
 
-        <TouchableOpacity style={styles.button} onPress={startSending}>
-          <Text style={styles.buttonText}>{isSending ? 'Stop Messages' : 'Start Messages'}</Text>
-        </TouchableOpacity>
+      <TouchableOpacity style={styles.button} onPress={startSending}>
+        <Text style={styles.buttonText}>{isSending ? 'Stop Messages' : 'Start Messages'}</Text>
+      </TouchableOpacity>
 
-        <Text style={styles.status}>{status}</Text>
-        <Text style={styles.counts}>Sent: {sent}  Failed: {failed}</Text>
-      </View>
-    </SafeAreaView>
+      <Text style={styles.status}>{status}</Text>
+      <Text style={styles.counts}>Sent: {sent}</Text>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  container: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', padding: 24 },
   title: { fontSize: 26, fontWeight: 'bold', marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#666', marginBottom: 32 },
   button: { backgroundColor: '#2563eb', paddingVertical: 16, paddingHorizontal: 32, borderRadius: 8 },
@@ -111,5 +89,3 @@ const styles = StyleSheet.create({
   status: { marginTop: 24, fontSize: 16, color: '#333' },
   counts: { marginTop: 8, fontSize: 16, color: '#059669', fontWeight: '600' },
 });
-
-export default App;
